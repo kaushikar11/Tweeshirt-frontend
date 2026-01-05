@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-slate-200 dark:border-slate-800;
+  }
+  
+  html {
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%) !important;
+    background-attachment: fixed !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    min-height: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  html::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%);
+    z-index: -9999;
+    pointer-events: none;
+  }
+  
+  body {
+    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%) !important;
+    background-attachment: fixed !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    min-height: 100vh !important;
+    height: 100% !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #e2e8f0 !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%);
+    z-index: -9998;
+    pointer-events: none;
+  }
+  
+  #__next {
+    background: transparent !important;
+    min-height: 100vh !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  #__next::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%);
+    z-index: -9997;
+    pointer-events: none;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), var(--font-inter), sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .bg-glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20;
+  }
+  
+  .bg-glass-dark {
+    @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50;
+  }
+}
