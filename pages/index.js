@@ -11,7 +11,8 @@ import { Alert } from '../components/Alert';
 export default function Home() {
   const router = useRouter();
   const [error, setError] = useState(null);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const { error: urlError } = router.query;
@@ -48,6 +49,38 @@ export default function Home() {
     }
   }, [router.query, router]);
 
+  // Show welcome message only immediately after login
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+      if (justLoggedIn === 'true') {
+        setShowWelcome(true);
+        sessionStorage.removeItem('justLoggedIn');
+        // Auto-redirect to image page after 2 seconds
+        setTimeout(() => {
+          router.push({
+            pathname: '/image',
+            query: {
+              userName: session.user.name,
+              userImage: session.user.image,
+              email: session.user.email,
+            },
+          });
+        }, 2000);
+      } else {
+        // Redirect to image page if already logged in
+        router.push({
+          pathname: '/image',
+          query: {
+            userName: session.user.name,
+            userImage: session.user.image,
+            email: session.user.email,
+          },
+        });
+      }
+    }
+  }, [status, session, router]);
+
   const goToImagePage = () => {
     router.push({
       pathname: '/image',
@@ -59,6 +92,15 @@ export default function Home() {
     });
   };
 
+  // If logged in and not showing welcome, show loading (will redirect)
+  if (status === 'authenticated' && session && !showWelcome) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -66,66 +108,65 @@ export default function Home() {
         <meta name="description" content="Transform your favorite tweets into custom t-shirts" />
       </Head>
 
-      <div 
-        className="min-h-screen relative"
-        style={{
-          background: 'transparent',
-        }}
-      >
+      <div className="min-h-screen relative">
         <HeaderElements />
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {session ? (
-            <div className="mx-auto max-w-2xl py-16 sm:py-24">
-              <Card className="bg-glass-dark border-violet-500/30 text-center">
+        <main className="w-full flex items-center justify-center min-h-[calc(100vh-5rem)]">
+          {session && showWelcome ? (
+            <div className="w-full max-w-2xl px-6">
+              <Card className="bg-black/40 backdrop-blur-2xl border border-white/10 text-center">
                 <CardHeader>
-                  <div className="mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full border-2 border-blue-500/50 shadow-lg">
+                  <div className="mx-auto mb-6 h-24 w-24 overflow-hidden rounded-full border-2 border-white/20 shadow-2xl">
                     <img
                       src={session.user.image}
                       alt={session.user.name || 'User'}
                       className="h-full w-full object-cover"
                     />
                   </div>
-                  <CardTitle className="font-display text-2xl text-white">
+                  <CardTitle className="font-display text-3xl text-white mb-2">
                     Welcome back, {session.user.name}!
                   </CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardDescription className="text-slate-300 text-lg">
                     Ready to turn your tweets into t-shirts?
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-4">
                   <Button
                     size="lg"
                     onClick={goToImagePage}
-                    className="w-full"
+                    className="w-full bg-white text-black hover:bg-white/90"
                   >
                     Get Started
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => signIn('twitter')}
-                    className="w-full"
+                    className="w-full border-white/20 text-white hover:bg-white/10"
                   >
                     Switch Account
                   </Button>
                 </CardContent>
               </Card>
             </div>
-          ) : (
-            <div className="mx-auto max-w-4xl py-16 sm:py-24">
+          ) : !session && (
+            <div className="w-full max-w-6xl px-6 py-20">
               <div className="text-center">
-                <div className="mb-8 flex justify-center">
-                  <div className="rounded-2xl bg-gradient-primary p-4 shadow-2xl shadow-blue-500/30">
-                    <Sparkles className="h-12 w-12 text-white" />
+                <div className="mb-12 flex justify-center">
+                  <div className="rounded-3xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 p-6 backdrop-blur-xl border border-white/10 shadow-2xl">
+                    <img
+                      src="/new logos/transparent-logo.png"
+                      alt="Tweeshirt Logo"
+                      className="h-16 w-auto mx-auto"
+                    />
                   </div>
                 </div>
                 
-                <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
+                <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-bold tracking-tight text-white mb-6">
                   Turn Tweets into
-                  <span className="block bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">T-Shirts</span>
+                  <span className="block bg-gradient-to-r from-blue-400 via-violet-400 to-purple-400 bg-clip-text text-transparent mt-2">T-Shirts</span>
                 </h1>
                 
-                <p className="mx-auto mt-6 max-w-2xl text-xl leading-8 text-slate-300">
-                  Transform your favorite tweets into custom, wearable art. Simple, fast, and delightful.
+                <p className="mx-auto mt-8 max-w-2xl text-2xl leading-relaxed text-slate-300 font-light">
+                  Powered by nextgen AI models. Transform your favorite tweets into custom t-shirts.
                 </p>
 
                 {error && (
@@ -136,49 +177,54 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="mt-10 flex items-center justify-center gap-x-6">
+                <div className="mt-12 flex items-center justify-center">
                   <Button
                     size="lg"
                     onClick={() => {
                       setError(null);
+                      sessionStorage.setItem('justLoggedIn', 'true');
                       signIn('twitter');
                     }}
-                    className="group"
+                    className="group bg-white text-black hover:bg-white/90 px-8 py-4 text-lg"
                   >
                     <Twitter className="mr-2 h-5 w-5" />
                     Sign in with Twitter
                   </Button>
                 </div>
 
-                <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
+                <div className="mt-24 grid grid-cols-1 gap-12 sm:grid-cols-3">
                   <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary shadow-lg shadow-blue-500/25">
-                      <Sparkles className="h-6 w-6 text-white" />
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10">
+                      <img
+                        src="/new logos/transparent-logo.png"
+                        alt="Tweeshirt"
+                        className="h-10 w-auto"
+                      />
                     </div>
-                    <h3 className="font-display text-lg font-semibold text-white">AI-Powered</h3>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <h3 className="font-display text-xl font-semibold text-white mb-3">AI-Powered</h3>
+                    <p className="text-base text-slate-300 leading-relaxed">
                       Advanced AI generates unique designs from your tweets
                     </p>
                   </div>
                   <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary shadow-lg shadow-blue-500/25">
-                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10">
+                      <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
-                    <h3 className="font-display text-lg font-semibold text-white">Fast & Simple</h3>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <h3 className="font-display text-xl font-semibold text-white mb-3">Fast & Simple</h3>
+                    <p className="text-base text-slate-300 leading-relaxed">
                       From tweet to t-shirt in minutes, not days
                     </p>
                   </div>
                   <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary shadow-lg shadow-blue-500/25">
-                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10">
+                      <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="font-display text-lg font-semibold text-white">Premium Quality</h3>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <h3 className="font-display text-xl font-semibold text-white mb-3">Premium Quality</h3>
+                    <p className="text-base text-slate-300 leading-relaxed">
                       High-quality prints on comfortable, durable fabric
                     </p>
                   </div>

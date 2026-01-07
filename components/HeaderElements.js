@@ -1,66 +1,102 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { Moon, Sun, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Button } from './Button';
 
 export function HeaderElements() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [theme, setTheme] = useState('light');
-  const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem('theme') || 'light';
-    setTheme(stored);
-    document.documentElement.classList.toggle('dark', stored === 'dark');
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
-
-  if (!mounted) return null;
-
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center space-x-4">
-      <button
-        onClick={toggleTheme}
-        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-200 bg-slate-900/50 backdrop-blur-sm"
-        aria-label="Toggle theme"
-      >
-        {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-      </button>
-
-      {session && (
-        <div className="flex items-center space-x-3 bg-slate-900/50 backdrop-blur-sm rounded-lg px-3 py-2">
-          <div className="flex items-center space-x-2">
-            {session.user?.image && (
-              <img
-                src={session.user.image}
-                alt={session.user.name || 'User'}
-                className="h-8 w-8 rounded-full border border-blue-500/50"
-              />
-            )}
-            <span className="hidden text-sm font-medium text-slate-300 sm:block">
-              {session.user?.name}
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled 
+          ? 'bg-black/40 backdrop-blur-2xl border-b border-white/5' 
+          : 'bg-transparent'
+      }`}
+      style={{
+        backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
+      }}
+    >
+      <div className="mx-auto max-w-7xl px-6 sm:px-8 lg:px-12">
+        <div className="flex h-20 items-center justify-between">
+          {/* Logo */}
+          <div 
+            className="flex items-center space-x-3 cursor-pointer"
+            onClick={() => router.push('/')}
+          >
+            <img
+              src="/new logos/transparent-logo.png"
+              alt="Tweeshirt Logo"
+              className="h-8 w-auto"
+            />
+            <span className="font-display text-xl font-semibold tracking-tight text-white/95">
+              Tweeshirt
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => signOut()}
-            className="text-slate-400 hover:text-slate-200 hover:bg-white/10"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+
+          {/* Navigation */}
+          <nav className="flex items-center space-x-8">
+            {session ? (
+              <>
+                <button
+                  onClick={() => router.push('/image')}
+                  className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => router.push('/gallery')}
+                  className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+                >
+                  Gallery
+                </button>
+                <button
+                  onClick={() => router.push('/orders')}
+                  className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+                >
+                  Orders
+                </button>
+                <div className="h-6 w-px bg-white/20" />
+                <div className="flex items-center space-x-3">
+                  {session.user?.image && (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || 'User'}
+                      className="h-8 w-8 rounded-full border border-white/20 object-cover"
+                    />
+                  )}
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="text-sm font-medium text-white/80 hover:text-white transition-colors flex items-center space-x-1.5"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Sign Out</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => router.push('/')}
+                className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+          </nav>
         </div>
-      )}
-    </div>
+      </div>
+    </header>
   );
 }
-

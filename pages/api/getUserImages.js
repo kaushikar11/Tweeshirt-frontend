@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { getFirestoreAdmin } from '../../lib/firebaseAdmin';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -13,44 +12,30 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
-    // Get user directory
-    const userDir = path.join(process.cwd(), 'public', 'gen_images', email);
+    // Get images metadata from Firestore for this user
+    const db = getFirestoreAdmin();
+    const userImagesRef = db.collection('users').doc(email).collection('images');
+    const snapshot = await userImagesRef.orderBy('created', 'desc').get();
 
-    // Check if directory exists
-    if (!fs.existsSync(userDir)) {
-      return res.status(200).json({ success: true, images: [] });
+    if (snapshot.empty) {
+      return res.status(200).json({ success: true, images: [], count: 0 });
     }
 
-    // Read all files in directory
-    const files = fs.readdirSync(userDir);
-    
-    // Filter for image files and get metadata
-    const images = files
-      .filter(file => /\.(png|jpg|jpeg|webp)$/i.test(file))
-      .map(file => {
-        const filePath = path.join(userDir, file);
-        const stats = fs.statSync(filePath);
-        const fileBuffer = fs.readFileSync(filePath);
-        const base64 = fileBuffer.toString('base64');
-        
-        // Extract prompt from filename (format: timestamp_prompt.png)
-        const filenameWithoutExt = file.replace(/\.(png|jpg|jpeg|webp)$/i, '');
-        const parts = filenameWithoutExt.split('_');
-        const timestamp = parts[0];
-        const prompt = parts.slice(1).join('_').replace(/-/g, ' ');
-
-        return {
-          filename: file,
-          prompt: prompt || 'Untitled',
-          timestamp: timestamp,
-          created: stats.birthtime,
-          modified: stats.mtime,
-          size: stats.size,
-          image: base64,
-          url: `/gen_images/${email}/${file}`,
-        };
-      })
-      .sort((a, b) => new Date(b.created) - new Date(a.created)); // Sort by newest first
+    // Build images array from Firestore metadata
+    const images = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        filename: data.filename,
+        prompt: data.prompt,
+        enhancedPrompt: data.enhancedPrompt || '',
+        style: data.style || '',
+        timestamp: data.timestamp,
+        created: data.created?.toDate?.() || new Date(data.timestamp),
+        url: data.cloudinaryUrl || '', // Direct Cloudinary URL
+        contentType: data.contentType || 'image/png',
+      };
+    });
 
     res.status(200).json({
       success: true,

@@ -174,30 +174,15 @@ export default function ImagePage() {
         <title>Generate Design - Tweeshirt</title>
       </Head>
 
-      <div 
-        className="min-h-screen relative"
-        style={{
-          background: 'transparent',
-        }}
-      >
+      <div className="min-h-screen relative">
         <HeaderElements />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/')}
-              className="mb-4 text-slate-300 hover:text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          </div>
-
-            <div className="mx-auto max-w-5xl">
+        <main className="w-full flex flex-col items-center min-h-[calc(100vh-5rem)] py-12">
+          <div className="w-full max-w-6xl px-6">
+            <div className="w-full">
             <div className="mb-12 text-center">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-primary px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/25">
                 <Zap className="h-4 w-4" />
-                Powered by Free AI Models (Pollinations.ai)
+                Powered by nextgen AI models
               </div>
               <h1 className="font-display text-4xl font-bold text-white sm:text-5xl md:text-6xl">
                 Create Your Design
@@ -254,7 +239,7 @@ export default function ImagePage() {
                           }`}
                         >
                           <img
-                            src={`data:image/png;base64,${image}`}
+                            src={image && (image.startsWith('http') ? image : `data:image/png;base64,${image}`)}
                             alt="Generated design"
                             className="h-auto w-full max-w-md"
                           />
@@ -267,19 +252,6 @@ export default function ImagePage() {
                           )}
                         </div>
                       </div>
-
-                      {selectedImage && (
-                        <div className="mt-6">
-                          <Button
-                            onClick={goToTshirtPage}
-                            size="lg"
-                            className="w-full"
-                          >
-                            Continue to T-Shirt Details
-                            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
-                          </Button>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -327,54 +299,57 @@ export default function ImagePage() {
                   <CardContent>
                     {userImages.length > 0 ? (
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {userImages.map((item, idx) => (
-                          <Card
-                            key={idx}
-                            className={`bg-slate-800/50 border-slate-700/50 cursor-pointer transition-all hover:border-violet-500/50 hover:shadow-lg hover:shadow-violet-500/10 ${
-                              selectedImage === item.image ? 'border-blue-500 ring-2 ring-blue-500/30' : ''
-                            }`}
-                            onClick={() => {
-                              setImage(item.image);
-                              setSelectedImage(item.image);
-                              setTimestamp(item.timestamp);
-                              setPrompt(item.prompt);
-                            }}
-                          >
-                            <CardContent className="p-0">
-                              <div className="relative">
-                                <img
-                                  src={`data:image/png;base64,${item.image}`}
-                                  alt={item.prompt}
-                                  className="h-48 w-full object-cover rounded-t-lg"
-                                />
-                                {selectedImage === item.image && (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-primary/80 backdrop-blur-sm rounded-t-lg">
-                                    <div className="rounded-full bg-white p-2 shadow-xl">
-                                      <Check className="h-5 w-5 text-blue-600" />
+                        {userImages.map((item, idx) => {
+                          const src = item.url || item.image || '';
+                          return (
+                            <Card
+                              key={idx}
+                              className={`bg-slate-800/50 border-slate-700/50 cursor-pointer transition-all hover:border-violet-500/50 hover:shadow-lg hover:shadow-violet-500/10 ${
+                                selectedImage === src ? 'border-blue-500 ring-2 ring-blue-500/30' : ''
+                              }`}
+                              onClick={() => {
+                                setImage(src);
+                                setSelectedImage(src);
+                                setTimestamp(item.timestamp);
+                                setPrompt(item.prompt);
+                              }}
+                            >
+                              <CardContent className="p-0">
+                                <div className="relative">
+                                  <img
+                                    src={src}
+                                    alt={item.prompt}
+                                    className="h-48 w-full object-cover rounded-t-lg"
+                                  />
+                                  {selectedImage === src && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-primary/80 backdrop-blur-sm rounded-t-lg">
+                                      <div className="rounded-full bg-white p-2 shadow-xl">
+                                        <Check className="h-5 w-5 text-blue-600" />
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="p-4">
-                                <p className="text-sm text-slate-300 line-clamp-2 font-medium">{item.prompt}</p>
-                                <div className="mt-2 flex items-center justify-between">
-                                  <span className="text-xs text-slate-500">{new Date(item.created).toLocaleDateString()}</span>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      goToTshirtPage(item.image);
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Order
-                                  </Button>
+                                  )}
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                                <div className="p-4">
+                                  <p className="text-sm text-slate-300 line-clamp-2 font-medium">{item.prompt}</p>
+                                  <div className="mt-2 flex items-center justify-between">
+                                    <span className="text-xs text-slate-500">{new Date(item.created).toLocaleDateString()}</span>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        goToTshirtPage(src);
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      Order
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="py-12 text-center">
@@ -423,6 +398,7 @@ export default function ImagePage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </main>
       </div>

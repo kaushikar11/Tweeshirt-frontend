@@ -8,15 +8,10 @@
   }
   
   html {
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%) !important;
-    background-attachment: fixed !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
-    min-height: 100% !important;
-    height: 100% !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0 !important;
     padding: 0 !important;
+    overflow-x: hidden;
   }
   
   html::before {
@@ -27,17 +22,15 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%);
+    background-attachment: fixed;
+    background-size: cover;
     z-index: -9999;
     pointer-events: none;
   }
   
   body {
-    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%) !important;
-    background-attachment: fixed !important;
-    background-size: 100% 100% !important;
-    background-repeat: no-repeat !important;
+    background: transparent !important;
     min-height: 100vh !important;
-    height: 100% !important;
     position: relative !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -45,18 +38,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-  }
-  
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%);
-    z-index: -9998;
-    pointer-events: none;
   }
   
   #__next {
@@ -67,20 +48,8 @@
     padding: 0 !important;
   }
   
-  #__next::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #020617 100%);
-    z-index: -9997;
-    pointer-events: none;
-  }
-  
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display), var(--font-inter), sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }
 

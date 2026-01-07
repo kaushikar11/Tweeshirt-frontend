@@ -15,15 +15,27 @@ const spaceGrotesk = Space_Grotesk({
   weight: ['400', '500', '600', '700'],
 });
 
+function AppLayout({ children }) {
+  return (
+    <div className={`${inter.variable} ${spaceGrotesk.variable} font-sans min-h-screen bg-transparent`}>
+      <div className="w-full">{children}</div>
+    </div>
+  );
+}
+
 function MyApp({ Component, pageProps }) {
   return (
     <SessionProvider session={pageProps.session}>
-      <div 
-        className={`${inter.variable} ${spaceGrotesk.variable} font-sans`}
-        style={{ background: 'transparent' }}
-      >
-        <Component {...pageProps} />
-      </div>
+      <AppLayout>
+        <div className="w-full min-h-screen flex flex-col">
+          <div className="flex-1 pt-20">
+            <Component {...pageProps} />
+          </div>
+          <footer className="text-center py-8 text-slate-400/60 text-sm border-t border-white/5 mt-16">
+            © 2026 Kaushik Alaguvadivel Ramya - Powered by nextgen AI models
+          </footer>
+        </div>
+      </AppLayout>
     </SessionProvider>
   );
 }

@@ -1,14 +1,17 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import { v2 as cloudinary } from 'cloudinary';
+import { getFirestoreAdmin } from '../../lib/firebaseAdmin';
 
-export const config = {
-  api: {
-    responseLimit: false,
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+
 
 async function ensureDirectoryExists(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -34,9 +37,12 @@ export default async function handler(req, res) {
     if (!prompt) {
       return res.status(400).json({ success: false, error: 'Prompt is required' });
     }
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
     
-    // Use email, username, or generate a unique identifier for file storage
-    const userIdentifier = email || `user_${Date.now()}`;
+    const userIdentifier = email;
 
     // Build enhanced prompt based on style
     let enhancedPrompt = prompt;
@@ -66,7 +72,7 @@ export default async function handler(req, res) {
       if (pollinationsResponse.ok) {
         const imageBuffer = await pollinationsResponse.arrayBuffer();
         imageBase64 = Buffer.from(imageBuffer).toString('base64');
-        console.log('✅ Using Pollinations.ai (FREE)');
+        console.log('✅ Using nextgen AI models');
       }
     } catch (error) {
       console.log('Pollinations.ai error, trying next option:', error.message);
@@ -204,14 +210,64 @@ export default async function handler(req, res) {
     const sanitizedPrompt = sanitizeFilename(prompt);
     const filename = `${timestamp}_${sanitizedPrompt}.png`;
 
-    // Create user directory structure: public/gen_images/{userIdentifier}/
-    const userDir = path.join(process.cwd(), 'public', 'gen_images', userIdentifier);
+    // Create temporary file for Cloudinary upload
+    const userDir = path.join(os.tmpdir(), 'gen_images', userIdentifier);
     await ensureDirectoryExists(userDir);
-
-    // Save image to file
     const filePath = path.join(userDir, filename);
     const imageBuffer = Buffer.from(imageBase64, 'base64');
-    fs.writeFileSync(filePath, imageBuffer);
+    
+    try {
+      fs.writeFileSync(filePath, imageBuffer);
+    } catch (fileError) {
+      console.error('Error saving temporary file:', fileError);
+      throw new Error('Failed to process image');
+    }
+
+    // Upload to Cloudinary
+    let cloudinaryUrl = null;
+    const sanitizedFilename = `${timestamp}_${sanitizedPrompt}`;
+    try {
+      const uploadResult = await cloudinary.uploader.upload(filePath, {
+        folder: `tweeshirt/${email}`,
+        public_id: sanitizedFilename,
+        resource_type: 'auto',
+        overwrite: false,
+      });
+      cloudinaryUrl = uploadResult.secure_url;
+      console.log('✅ Image uploaded to Cloudinary');
+    } catch (cloudinaryError) {
+      console.error('Error uploading to Cloudinary:', cloudinaryError);
+      throw new Error('Failed to upload image to storage');
+    }
+
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(filePath);
+    } catch (cleanupError) {
+      console.error('Error cleaning up temporary file:', cleanupError);
+    }
+
+    // Save metadata to Firestore under user's email collection
+    try {
+      const db = getFirestoreAdmin();
+      const userImagesRef = db.collection('users').doc(email).collection('images');
+      
+      await userImagesRef.doc(filename).set({
+        filename,
+        prompt,
+        enhancedPrompt: enhancedPrompt,
+        style: style || '',
+        timestamp,
+        created: new Date(),
+        cloudinaryUrl: cloudinaryUrl,
+        cloudinaryPublicId: `tweeshirt/${email}/${sanitizedFilename}`,
+        contentType: 'image/png',
+      });
+      console.log('✅ Image metadata saved to Firestore');
+    } catch (firestoreError) {
+      console.error('Error saving to Firestore:', firestoreError);
+      throw new Error('Failed to save image metadata');
+    }
 
     // Return image data and metadata
     res.status(200).json({

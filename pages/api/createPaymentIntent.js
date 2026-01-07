@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { amount, currency = 'inr', metadata = {} } = req.body;
+    const { amount, currency = 'usd', metadata = {} } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     });
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents (smallest currency unit)
-      currency: 'usd',
+      amount: Math.round(amount * 100), // Convert to cents for USD (smallest currency unit)
+      currency: currency,
       metadata,
       automatic_payment_methods: {
         enabled: true,
