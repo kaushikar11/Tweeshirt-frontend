@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, ArrowRight, Check, Upload, CreditCard, Lock } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { HeaderElements } from '../components/HeaderElements';
 import { Button } from '../components/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/Card';
@@ -21,63 +19,6 @@ const T_SHIRT_COLORS = [
 
 const T_SHIRT_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
 
-const COUNTRIES = [
-  'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Belgium',
-  'Switzerland', 'Austria', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Ireland', 'Portugal', 'Greece', 'Poland',
-  'Czech Republic', 'Hungary', 'Slovakia', 'Slovenia', 'Croatia', 'Romania', 'Bulgaria', 'Serbia', 'Bosnia and Herzegovina', 'Montenegro',
-  'Kosovo', 'Albania', 'North Macedonia', 'Turkey', 'Russia', 'Ukraine', 'Belarus', 'Moldova', 'Georgia', 'Armenia',
-  'Azerbaijan', 'Kazakhstan', 'Uzbekistan', 'Turkmenistan', 'Kyrgyzstan', 'Tajikistan', 'Japan', 'South Korea', 'China', 'India',
-  'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal', 'Bhutan', 'Maldives', 'Thailand', 'Vietnam', 'Cambodia', 'Laos',
-  'Myanmar', 'Malaysia', 'Singapore', 'Indonesia', 'Philippines', 'Brunei', 'East Timor', 'New Zealand', 'Fiji', 'Samoa',
-  'Tonga', 'Vanuatu', 'Solomon Islands', 'Papua New Guinea', 'Micronesia', 'Marshall Islands', 'Palau', 'Nauru', 'Kiribati',
-  'Tuvalu', 'Mexico', 'Guatemala', 'Belize', 'El Salvador', 'Honduras', 'Nicaragua', 'Costa Rica', 'Panama', 'Colombia',
-  'Venezuela', 'Ecuador', 'Peru', 'Bolivia', 'Chile', 'Argentina', 'Uruguay', 'Paraguay', 'Brazil', 'Suriname',
-  'Guyana', 'French Guiana', 'South Africa', 'Namibia', 'Botswana', 'Zimbabwe', 'Mozambique', 'Malawi', 'Zambia', 'Angola',
-  'Tanzania', 'Kenya', 'Uganda', 'Rwanda', 'Burundi', 'Ethiopia', 'Somalia', 'Djibouti', 'Eritrea', 'Sudan',
-  'South Sudan', 'Egypt', 'Libya', 'Tunisia', 'Algeria', 'Morocco', 'Western Sahara', 'Mauritania', 'Mali', 'Niger',
-  'Chad', 'Central African Republic', 'Cameroon', 'Equatorial Guinea', 'Gabon', 'Republic of the Congo', 'Democratic Republic of the Congo', 'Ivory Coast', 'Ghana', 'Togo',
-  'Benin', 'Nigeria', 'Burkina Faso', 'Guinea', 'Guinea-Bissau', 'Sierra Leone', 'Liberia', 'Senegal', 'Gambia', 'Cape Verde',
-  'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Yemen', 'Jordan', 'Lebanon', 'Syria',
-  'Iraq', 'Iran', 'Israel', 'Palestine', 'Cyprus', 'Malta', 'Iceland', 'Greenland', 'Faroe Islands', 'Luxembourg',
-  'Monaco', 'Andorra', 'San Marino', 'Liechtenstein', 'Vatican City'
-];
-
-let stripePromise = null;
-if (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-  stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-}
-
-const PaymentForm = ({ clientSecret, onPaymentSuccess }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!stripe || !elements) return;
-
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: window.location.href,
-      },
-    });
-
-    if (error) {
-      console.error('Payment failed:', error);
-    } else {
-      onPaymentSuccess();
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <CardElement className="p-3 border border-slate-600 rounded bg-slate-800" />
-      <Button type="submit" disabled={!stripe} className="w-full">
-        Pay ${clientSecret ? 'Processing...' : '0'}
-      </Button>
-    </form>
-  );
-};
 
 export default function App() {
   const router = useRouter();
@@ -115,9 +56,9 @@ export default function App() {
   const [imageSize, setImageSize] = useState(50); // Percentage size
   const [isDragging, setIsDragging] = useState(false);
   const [orderPrice, setOrderPrice] = useState(null);
+  const [priceBreakdown, setPriceBreakdown] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-  const [clientSecret, setClientSecret] = useState('');
   
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
@@ -157,34 +98,60 @@ export default function App() {
   };
 
   const calculatePrice = async () => {
-    if (!customerDetails.tshirtSize || !customerDetails.pincode) {
-      setSubmitError('Please select t-shirt size and enter pincode to calculate price');
-      return;
+    // Use backend pricing logic
+    const USD_RATE = 83; // 1 USD = 83 INR
+    const gst = 5; // 5% GST
+    
+    // Base prices in USD (matching backend logic)
+    let basePrice;
+    if (customerDetails.tshirtSize === 'S' || customerDetails.tshirtSize === 'M' || 
+        customerDetails.tshirtSize === 'L' || customerDetails.tshirtSize === 'XL') {
+      basePrice = 2.75;
+    } else if (customerDetails.tshirtSize === '2XL') {
+      basePrice = 2.95;
+    } else if (customerDetails.tshirtSize === '3XL') {
+      basePrice = 3.20;
+    } else if (customerDetails.tshirtSize === '4XL') {
+      basePrice = 3.45;
+    } else if (customerDetails.tshirtSize === '5XL') {
+      basePrice = 3.60;
+    } else {
+      basePrice = 2.75; // Default
     }
-
-    setLoadingPrice(true);
-    try {
-      // Calculate price in USD
-      const basePrices = {
-        'S': 2.75, 'M': 2.75, 'L': 2.75, 'XL': 2.75,
-        '2XL': 2.95, '3XL': 3.20, '4XL': 3.45, '5XL': 3.60
-      };
-      const basePrice = basePrices[customerDetails.tshirtSize] || 2.75;
-      const printingPrice = 2.00;
-      const courierCharge = 0.60;
-      const profit = 1.25;
-      const gst = 5; // 5% tax
-
-      const total = basePrice + printingPrice + courierCharge + profit;
-      const finalPrice = total + (total * gst / 100);
-
-      setOrderPrice(Math.round(finalPrice * 100) / 100);
-    } catch (error) {
-      console.error('Error calculating price:', error);
-      setSubmitError('Failed to calculate price. Please try again.');
-    } finally {
-      setLoadingPrice(false);
+    
+    const printingPrice = 2.00; // ~160 INR / 83
+    
+    // Courier charge - use default if pincode not provided
+    let courierCharge = 0.60; // Default estimate
+    if (customerDetails.pincode) {
+      // If pincode is provided, we could fetch actual courier charge
+      // For now, use default
+      courierCharge = 0.60;
     }
+    
+    // Calculate total following backend logic
+    const subtotal = courierCharge + basePrice + printingPrice;
+    
+    // Profit should be 150% of subtotal
+    const profit = subtotal * 1.50;
+    
+    // GST is 5% on (subtotal + profit)
+    const totalBeforeGST = subtotal + profit;
+    const gstAmount = (totalBeforeGST * gst) / 100;
+    const finalTotal = totalBeforeGST + gstAmount;
+    
+    // Set price breakdown
+    setPriceBreakdown({
+      basePrice: basePrice.toFixed(2),
+      printingPrice: printingPrice.toFixed(2),
+      courierCharge: courierCharge.toFixed(2),
+      subtotal: subtotal.toFixed(2),
+      profit: profit.toFixed(2),
+      gst: gstAmount.toFixed(2),
+      total: finalTotal.toFixed(2)
+    });
+    
+    setOrderPrice(Math.round(finalTotal * 100) / 100);
   };
 
   const handleMouseDown = (e) => {
@@ -209,6 +176,21 @@ export default function App() {
   const handleFormSubmit = async () => {
     if (!file) {
       setSubmitError('Please confirm your image selection');
+      setCurrentStage(1);
+      return;
+    }
+
+    if (!customerDetails.tshirtColor || !customerDetails.tshirtSize) {
+      setSubmitError('Please select t-shirt color and size');
+      setCurrentStage(3);
+      return;
+    }
+
+    if (!customerDetails.name || !customerDetails.email || !customerDetails.mobileNumber || 
+        !customerDetails.address1 || !customerDetails.pincode || !customerDetails.city || 
+        !customerDetails.state || !customerDetails.country) {
+      setSubmitError('Please fill in all required shipping details');
+      setCurrentStage(4);
       return;
     }
 
@@ -216,10 +198,11 @@ export default function App() {
     setSubmitError(null);
 
     try {
-      const url = 'https://api.printrove.com/api/external/designs';
+      // Upload file to Printrove first
+      const uploadUrl = 'https://api.printrove.com/api/external/designs';
       const AUTH_KEY = process.env.NEXT_PUBLIC_SKIBDSS;
       
-      const binaryString = atob(file);
+      const binaryString = atob(file.replace(/^data:image\/\w+;base64,/, ''));
       const arrayBuffer = new ArrayBuffer(binaryString.length);
       const uint8Array = new Uint8Array(arrayBuffer);
       for (let i = 0; i < binaryString.length; i++) {
@@ -227,9 +210,9 @@ export default function App() {
       }
       const blob = new Blob([arrayBuffer], { type: 'image/png' });
       const formData = new FormData();
-      formData.append('file', blob, `${prompt}_${selectedImageIndex}_${email}_${timestamp}.png`);
+      formData.append('file', blob, `design_${Date.now()}.png`);
 
-      const fileResponse = await axios.post(url, formData, {
+      const fileResponse = await axios.post(uploadUrl, formData, {
         headers: {
           Authorization: `Bearer ${AUTH_KEY}`,
           Accept: 'application/json',
@@ -238,13 +221,15 @@ export default function App() {
 
       const updatedCustomerDetails = {
         ...customerDetails,
-        fileResponse: fileResponse.data,
+        file: file, // Send base64 file
+        fileResponse: fileResponse.data, // Send Printrove response
         imagePosition: imagePosition || 'center',
         positionCoords: positionCoords || { x: 50, y: 50 },
         imageSize: imageSize || 50,
       };
 
-      const formUrl = 'https://tweeshirt-backend-api.onrender.com/submit_form';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tweeshirt-backend-e05d2bws2-kaushiks-projects-c93da684.vercel.app';
+      const formUrl = `${backendUrl}/submit_form`;
       const response = await axios.post(formUrl, updatedCustomerDetails);
 
       if (response.data.success) {
@@ -255,7 +240,7 @@ export default function App() {
       }
     } catch (error) {
       console.error('Submission error:', error);
-      setSubmitError('Failed to submit your order. Please try again.');
+      setSubmitError(error.response?.data?.message || error.message || 'Failed to submit your order. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -267,14 +252,10 @@ export default function App() {
         <title>Order Details - Tweeshirt</title>
       </Head>
 
-      <div 
-        className="min-h-screen relative"
-        style={{
-          background: 'transparent',
-        }}
-      >
+      <div className="min-h-screen relative">
         <HeaderElements />
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="w-full flex flex-col items-center min-h-[calc(100vh-5rem)] py-12">
+          <div className="w-full max-w-4xl px-6">
           <div className="mb-6">
             <Button
               variant="ghost"
@@ -351,7 +332,7 @@ export default function App() {
                     {selectedImage && (
                       <div className="flex justify-center">
                         <img
-                          src={`data:image/png;base64,${selectedImage}`}
+                          src={selectedImage && (selectedImage.startsWith('http') ? selectedImage : `data:image/png;base64,${selectedImage}`)}
                           alt="Selected design"
                           className="h-auto w-full max-w-md rounded-lg border border-slate-200 dark:border-slate-800"
                         />
@@ -441,7 +422,7 @@ export default function App() {
                           >
                             <div className="absolute inset-4 border border-dashed border-slate-600 rounded"></div>
                             <img
-                              src={`data:image/png;base64,${selectedImage}`}
+                              src={selectedImage && (selectedImage.startsWith('http') ? selectedImage : `data:image/png;base64,${selectedImage}`)}
                               alt="Preview"
                               draggable={false}
                               className={`absolute object-contain transition-all ${
@@ -701,23 +682,9 @@ export default function App() {
                       </Button>
                       <Button
                         onClick={async () => {
-                          let price = orderPrice;
-                          if (!price) {
-                            await calculatePrice();
-                            price = orderPrice;
-                          }
-                          if (price) {
-                            try {
-                              const response = await axios.post('/api/createPaymentIntent', {
-                                amount: price,
-                                currency: 'inr',
-                                metadata: { email: customerDetails.email }
-                              });
-                              setClientSecret(response.data.clientSecret);
-                              setCurrentStage(5);
-                            } catch (error) {
-                              setSubmitError('Failed to initialize payment. Please try again.');
-                            }
+                          await calculatePrice();
+                          if (orderPrice) {
+                            setCurrentStage(5);
                           }
                         }}
                         className="flex-1"
@@ -749,18 +716,52 @@ export default function App() {
                     )}
 
                     <div className="rounded-lg border border-slate-700 bg-slate-800/30 p-6">
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-300">T-Shirt ({customerDetails.tshirtSize}, {customerDetails.tshirtColor})</span>
-                          <span className="text-white font-semibold">${orderPrice || 'Calculating...'}</span>
+                      <div className="space-y-3">
+                        <div className="mb-4">
+                          <h3 className="text-sm font-semibold text-white mb-3">T-Shirt ({customerDetails.tshirtSize}, {customerDetails.tshirtColor})</h3>
                         </div>
-                        <div className="flex justify-between items-center text-sm text-slate-400">
-                          <span>Includes: Base price, Printing, Shipping, Tax</span>
-                        </div>
-                        <div className="border-t border-slate-700 pt-4 flex justify-between items-center">
-                          <span className="text-lg font-semibold text-white">Total Amount</span>
-                          <span className="text-2xl font-bold text-blue-400">${orderPrice || '0'}</span>
-                        </div>
+                        
+                        {/* Price Breakdown */}
+                        {priceBreakdown ? (
+                          <>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between text-slate-300">
+                                <span>Base Price ({customerDetails.tshirtSize})</span>
+                                <span className="text-white">${priceBreakdown.basePrice}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-300">
+                                <span>Printing Price</span>
+                                <span className="text-white">${priceBreakdown.printingPrice}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-300">
+                                <span>Courier Charge</span>
+                                <span className="text-white">${priceBreakdown.courierCharge}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-300 pt-2 border-t border-slate-600">
+                                <span>Subtotal</span>
+                                <span className="text-white font-medium">${priceBreakdown.subtotal}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-300">
+                                <span>Profit</span>
+                                <span className="text-white">${priceBreakdown.profit}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-300">
+                                <span>GST (5%)</span>
+                                <span className="text-white">${priceBreakdown.gst}</span>
+                              </div>
+                            </div>
+                            <div className="border-t border-slate-600 pt-4 mt-4">
+                              <div className="flex justify-between items-center">
+                                <span className="text-lg font-semibold text-white">Total Amount</span>
+                                <span className="text-2xl font-bold text-blue-400">${priceBreakdown.total}</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-4">
+                            <span className="text-slate-400">Calculating price...</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -810,6 +811,7 @@ export default function App() {
               )}
             </>
           )}
+          </div>
         </main>
       </div>
     </>
