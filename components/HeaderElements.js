@@ -1,4 +1,4 @@
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -88,7 +88,10 @@ export function HeaderElements() {
               </>
             ) : (
               <button
-                onClick={() => router.push('/')}
+                onClick={() => {
+                  sessionStorage.setItem('justLoggedIn', 'true');
+                  signIn('twitter');
+                }}
                 className="text-sm font-medium text-white/80 hover:text-white transition-colors"
               >
                 Sign In

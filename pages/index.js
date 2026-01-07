@@ -182,13 +182,27 @@ export default function Home() {
                     size="lg"
                     onClick={() => {
                       setError(null);
-                      sessionStorage.setItem('justLoggedIn', 'true');
-                      signIn('twitter');
+                      // Check if user is already authenticated
+                      if (status === 'authenticated' && session) {
+                        // Already logged in, redirect to image page
+                        router.push({
+                          pathname: '/image',
+                          query: {
+                            userName: session.user.name,
+                            userImage: session.user.image,
+                            email: session.user.email,
+                          },
+                        });
+                      } else {
+                        // Not logged in, proceed with Twitter sign in
+                        sessionStorage.setItem('justLoggedIn', 'true');
+                        signIn('twitter');
+                      }
                     }}
                     className="group bg-white text-black hover:bg-white/90 px-8 py-4 text-lg"
                   >
                     <Twitter className="mr-2 h-5 w-5" />
-                    Sign in with Twitter
+                    {status === 'authenticated' && session ? 'Go to Dashboard' : 'Sign in with Twitter'}
                   </Button>
                 </div>
 

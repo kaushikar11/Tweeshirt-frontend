@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Check, Sparkles, Zap, Image as ImageIcon, Grid3x3 } from 'lucide-react';
+import { ArrowLeft, Check, Sparkles, Zap, Image as ImageIcon, Grid3x3, Trash2 } from 'lucide-react';
 import { HeaderElements } from '../components/HeaderElements';
 import { Button } from '../components/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/Card';
@@ -25,6 +25,7 @@ export default function ImagePage() {
   const [loadingImages, setLoadingImages] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [deleting, setDeleting] = useState(null);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -166,6 +167,51 @@ export default function ImagePage() {
         image_0: imageToSend,
       },
     });
+  };
+
+  const handleDelete = async (imageId, filename) => {
+    if (!window.confirm('Are you sure you want to delete this image?')) {
+      return;
+    }
+
+    try {
+      setDeleting(imageId);
+      const userIdentifier = 
+        email || 
+        session?.user?.email || 
+        session?.user?.username || 
+        session?.user?.id;
+      
+      const response = await fetch('/api/deleteImage', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userIdentifier,
+          imageId: imageId,
+          filename: filename,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete image');
+      }
+
+      // Remove from local state
+      setUserImages((prev) => prev.filter((img) => img.id !== imageId));
+      
+      // If deleted image was selected, clear selection
+      if (selectedImage && (userImages.find(img => img.id === imageId)?.url === selectedImage || userImages.find(img => img.id === imageId)?.image === selectedImage)) {
+        setSelectedImage('');
+        setImage('');
+      }
+    } catch (err) {
+      console.error('Error deleting image:', err);
+      alert(err.message || 'Failed to delete image');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   return (
@@ -331,19 +377,37 @@ export default function ImagePage() {
                                 </div>
                                 <div className="p-4">
                                   <p className="text-sm text-slate-300 line-clamp-2 font-medium">{item.prompt}</p>
-                                  <div className="mt-2 flex items-center justify-between">
+                                  <div className="mt-2 flex items-center justify-between gap-2">
                                     <span className="text-xs text-slate-500">{new Date(item.created).toLocaleDateString()}</span>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        goToTshirtPage(src);
-                                      }}
-                                      className="text-xs"
-                                    >
-                                      Order
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          goToTshirtPage(src);
+                                        }}
+                                        className="text-xs"
+                                      >
+                                        Order
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(item.id, item.filename || item.id);
+                                        }}
+                                        disabled={deleting === item.id}
+                                        className="text-xs text-red-400 hover:text-red-300 hover:border-red-400"
+                                      >
+                                        {deleting === item.id ? (
+                                          <div className="w-3 h-3 animate-spin rounded-full border-2 border-red-400 border-t-transparent"></div>
+                                        ) : (
+                                          <Trash2 className="h-3 w-3" />
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </CardContent>

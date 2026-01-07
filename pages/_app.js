@@ -25,7 +25,12 @@ function AppLayout({ children }) {
 
 function MyApp({ Component, pageProps }) {
   return (
-    <SessionProvider session={pageProps.session}>
+    <SessionProvider 
+      session={pageProps.session}
+      refetchInterval={5 * 60} // Refetch session every 5 minutes
+      refetchOnWindowFocus={true}
+      basePath={process.env.NEXT_PUBLIC_BASE_PATH || undefined}
+    >
       <AppLayout>
         <div className="w-full min-h-screen flex flex-col">
           <div className="flex-1 pt-20">

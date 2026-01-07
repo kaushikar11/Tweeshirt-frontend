@@ -88,7 +88,8 @@ export default function Gallery() {
         },
         body: JSON.stringify({
           email: session?.user?.email,
-          filename,
+          imageId: imageId,
+          filename: filename,
         }),
       });
 
@@ -310,7 +311,7 @@ export default function Gallery() {
 
                         <button
                           onClick={() =>
-                            handleDelete(selectedImage.id, selectedImage.filename)
+                            handleDelete(selectedImage.id, selectedImage.filename || selectedImage.id)
                           }
                           disabled={deleting === selectedImage.id}
                           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 text-white rounded-lg transition-colors"

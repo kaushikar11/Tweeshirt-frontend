@@ -218,8 +218,7 @@ export default async function handler(req, res) {
     
     try {
       fs.writeFileSync(filePath, imageBuffer);
-    } catch (fileError) {
-      console.error('Error saving temporary file:', fileError);
+    } catch {
       throw new Error('Failed to process image');
     }
 
@@ -234,17 +233,15 @@ export default async function handler(req, res) {
         overwrite: false,
       });
       cloudinaryUrl = uploadResult.secure_url;
-      console.log('✅ Image uploaded to Cloudinary');
-    } catch (cloudinaryError) {
-      console.error('Error uploading to Cloudinary:', cloudinaryError);
+    } catch {
       throw new Error('Failed to upload image to storage');
     }
 
     // Clean up temporary file
     try {
       fs.unlinkSync(filePath);
-    } catch (cleanupError) {
-      console.error('Error cleaning up temporary file:', cleanupError);
+    } catch {
+      // ignore cleanup errors
     }
 
     // Save metadata to Firestore under user's email collection
@@ -263,9 +260,7 @@ export default async function handler(req, res) {
         cloudinaryPublicId: `tweeshirt/${email}/${sanitizedFilename}`,
         contentType: 'image/png',
       });
-      console.log('✅ Image metadata saved to Firestore');
-    } catch (firestoreError) {
-      console.error('Error saving to Firestore:', firestoreError);
+    } catch {
       throw new Error('Failed to save image metadata');
     }
 
@@ -279,7 +274,6 @@ export default async function handler(req, res) {
       style,
     });
   } catch (error) {
-    console.error('Image generation error:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to generate image',
